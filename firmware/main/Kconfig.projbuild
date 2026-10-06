@@ -1,0 +1,58 @@
+# VibeKey 可配置项
+#
+# 这些是面向开发者/高级用户的旋钮；普通用户通过上位机 GUI 配置，
+# 不接触 Kconfig。
+
+menu "VibeKey 配置"
+
+    config VIBEKEY_FW_VERSION
+        string "固件版本号"
+        default "0.1.0"
+        help
+            上报给上位机的版本字符串（状态帧里的 FW= 字段）。
+            发布新固件时递增。
+
+    config VIBEKEY_TCP_PORT
+        int "WiFi TCP 服务端口"
+        default 8266
+        range 1024 65535
+        help
+            STA 模式下设备监听上位机连接的 TCP 端口。
+            AP 模式下上位机连 192.168.4.1:此端口。
+
+    config VIBEKEY_DISCOVERY_PORT
+        int "UDP 设备发现广播端口"
+        default 8267
+        range 1024 65535
+        help
+            上位机向 255.255.255.255 广播发现请求，设备在此端口应答。
+            这是 PRD 缺失的一环，见技术设计文档 §6.2。
+
+    config VIBEKEY_AP_MAX_CONN
+        int "AP 模式最大客户端数"
+        default 4
+        range 1 8
+        help
+            AP 配网模式下最多允许几台设备同时连这个热点。
+            配网只需要连一台，给 4 是留余量（比如手机也在连）。
+
+    config VIBEKEY_AP_PASSWORD
+        string "AP 配网模式密码"
+        default "Vb7Kq2mXv9"
+        help
+            WPA2-PSK 密码，SSID 固定为 VibeKey-<MAC后4位>。
+            出厂前必须替换为开发者统一生成的随机串并印刷在说明书首页。
+            已知弱点：所有设备共用同一密码，二代建议改为按 MAC 派生唯一密码。
+
+    config VIBEKEY_SEND_KEY_RELEASE
+        bool "上报按键释放事件（0x05 帧）"
+        default n
+        help
+            默认关闭。开启后，被指定为"语音键"的那颗键在松开时会
+            额外上报一个释放帧，用于实现 PRD 5.6 流式模式的
+            "按住说话、松开结束"。
+
+            不开时流式模式退化为点按切换（整包模式的交互）。
+            见技术设计文档 §5.4。
+
+endmenu

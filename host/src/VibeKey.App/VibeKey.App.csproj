@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- SendKeys 在 System.Windows.Forms 里；WPF 引用它来模拟按键输入。
+         不引入 WinForms 的 UI，只是复用这个工具类。 -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>VibeKey.App</RootNamespace>
+    <AssemblyName>VibeKey</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- 自包含单文件发布：安装包只释放一个 exe，不需要用户装 .NET 运行时。
+         若用户机器已装 .NET 8，可改为框架依赖以减小体积。 -->
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+
+    <Version>0.1.0</Version>
+    <Product>VibeKey</Product>
+    <Company>萤狸科技</Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VibeKey.Protocol\VibeKey.Protocol.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- System.IO.Ports 不在 net10.0-windows 的共享框架里，需显式引用（USB CDC 用） -->
+    <PackageReference Include="System.IO.Ports" Version="10.0.0" />
+    <!-- WMI：用于把 VID/PID 映射到 COM 口名（SerialPort.GetPortNames 拿不到 VID/PID） -->
+    <PackageReference Include="System.Management" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+# VibeKey 分区表
+#
+# 设计要点：
+#   - app 分区给足 4MB，因为要装 mbedTLS + WebSocket + HTTP client
+#   - nvs 独立分区，存放 WiFi 凭据与 ASR 配置（PRD 5.6）
+#   - 不做 OTA（PRD 3.2 非目标），所以只有一个 app 分区、没有 ota_data
+#   - 烧录走 USB CDC + esptool，由 bootloader 完成
+
+# Name,     Type, SubType,  Offset,    Size, Flags
+nvs,        data, nvs,      0x9000,    0x6000,
+phy_init,   data, phy,      0xf000,    0x1000,
+factory,    app,  factory,  0x10000,   0x200000,
+coredump,   data, coredump, 0x210000,  0x10000,

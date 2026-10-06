@@ -1,0 +1,43 @@
+# 构建产物
+build/
+bin/
+obj/
+publish/
+installer/output/
+*.o
+*.exe
+*.obj
+*.pdb
+*.ilk
+
+# 测试可执行文件
+firmware/test/run_tests
+firmware/test/run_tests.exe
+
+# NuGet：本地预下载的包不提交（见 host/nuget.config 说明）
+host/local-packages/
+
+# ESP-IDF
+firmware/sdkconfig
+firmware/dependencies.lock
+firmware/managed_components/
+
+# eim（ESP-IDF 安装管理器）的本地安装配置，不属于项目源码
+eim_config.toml
+
+# 密钥与本地配置（AP 密码、ASR Key 等一律不进仓库）
+*.local.md
+secrets.*
+.local/
+
+# 编辑器
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# 系统
+Thumbs.db
+desktop.ini
+.DS_Store
