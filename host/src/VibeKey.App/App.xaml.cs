@@ -14,6 +14,11 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // 初始化主题：把色板（C# 创建的 SolidColorBrush）放进
+        // Application.Resources 直接 Resources，样式字典（BaseStyles.xaml）
+        // 放进 MergedDictionaries。
+        ThemeManager.SetTheme(ThemeManager.Light);
+
         _vm = new MainViewModel();
         MainWindow = new Views.MainWindow { DataContext = _vm };
 

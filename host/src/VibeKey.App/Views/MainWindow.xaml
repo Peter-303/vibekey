@@ -86,7 +86,9 @@
             </Grid.ColumnDefinitions>
 
             <!-- ========== 左列 ========== -->
-            <StackPanel Grid.Column="0">
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
                 <!-- 设备状态卡 -->
                 <Border Style="{StaticResource CardBorder}">
                     <StackPanel>
@@ -258,10 +260,13 @@
                                    TextWrapping="Wrap" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>
-            </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
 
             <!-- ========== 右列 ========== -->
-            <StackPanel Grid.Column="2">
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
                 <!-- 按键映射 -->
                 <Border Style="{StaticResource CardBorder}">
                     <Grid>
@@ -369,7 +374,8 @@
                         </ListBox>
                     </Grid>
                 </Border>
-            </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

@@ -5,11 +5,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- 主题色板：默认浅色。代码里用 ThemeManager.SetTheme("dark") 切换。
-                     两套字典共用同一套语义键，样式层（Base.xaml）用 DynamicResource
-                     引用它们，切换时不用改任何样式。 -->
-                <ResourceDictionary Source="Themes/Light.xaml" />
-                <ResourceDictionary Source="Themes/Base.xaml" />
+                <!-- 主题资源由 ThemeManager.SetTheme 在 OnStartup 时注入：
+                     色板（C# 创建的 SolidColorBrush）放直接 Resources，
+                     样式字典（Themes/BaseStyles.xaml，用 DynamicResource 引用色板键）
+                     放 MergedDictionaries。 -->
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
