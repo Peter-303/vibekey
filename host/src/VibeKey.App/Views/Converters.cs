@@ -25,6 +25,16 @@ public sealed class CountToVisibilityConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+/// <summary>bool 为 false 时才可见。用于"非模拟设备时才显示 COM 口选择"。</summary>
+public sealed class InverseBoolToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is bool b && !b ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 /// <summary>字符串非空时才可见。用于"有状态文字才显示状态框"。</summary>
 public sealed class StringToVisibilityConverter : IValueConverter
 {

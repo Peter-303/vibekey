@@ -6,7 +6,7 @@
         Title="VibeKey 控制台"
         Height="760" Width="1040"
         MinHeight="620" MinWidth="900"
-        Background="{StaticResource Bg}"
+        Background="{DynamicResource Bg}"
         WindowStartupLocation="CenterScreen"
         TextOptions.TextFormattingMode="Display">
 
@@ -15,6 +15,7 @@
         <views:InverseBoolConverter x:Key="InvScanning" />
         <views:CountToVisibilityConverter x:Key="Count2V" />
         <views:StringToVisibilityConverter x:Key="Str2V" />
+        <views:InverseBoolToVisibilityConverter x:Key="InvB2V" />
     </Window.Resources>
 
     <Grid Margin="20">
@@ -37,9 +38,9 @@
                               Content="模拟设备（无需硬件）"
                               VerticalAlignment="Center" Margin="0,0,16,0" />
                     <TextBlock Text="COM 口" VerticalAlignment="Center" Margin="0,0,6,0"
-                               Foreground="{StaticResource TextMuted}"
-                               Visibility="{Binding UseSimulator, Converter={StaticResource B2V}}" />
-                    <ComboBox Width="110" Visibility="{Binding UseSimulator, Converter={StaticResource B2V}}"
+                               Foreground="{DynamicResource TextMuted}"
+                               Visibility="{Binding UseSimulator, Converter={StaticResource InvB2V}}" />
+                    <ComboBox Width="110" Visibility="{Binding UseSimulator, Converter={StaticResource InvB2V}}"
                               ItemsSource="{Binding AvailablePorts}" SelectedItem="{Binding ComPort, Mode=TwoWay}" />
                     <Button Content="连接" Click="OnConnect" IsEnabled="{Binding CanConnect}" />
                     <Button Content="断开" Style="{StaticResource Secondary}" Click="OnDisconnect" />
@@ -47,23 +48,28 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal"
                             HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Ellipse Width="10" Height="10" Margin="0,0,6,0" VerticalAlignment="Center">
+                    <!-- 主题切换：浅色/深色（PRD 6.1） -->
+                    <Button Style="{StaticResource Ghost}" Click="OnToggleTheme"
+                            ToolTip="切换浅色 / 深色主题">
+                        <TextBlock x:Name="ThemeIcon" Text="🌙" FontSize="14" VerticalAlignment="Center" />
+                    </Button>
+                    <Ellipse Width="10" Height="10" Margin="12,0,6,0" VerticalAlignment="Center">
                         <Ellipse.Style>
                             <Style TargetType="Ellipse">
-                                <Setter Property="Fill" Value="{StaticResource TextMuted}" />
+                                <Setter Property="Fill" Value="{DynamicResource TextMuted}" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsConnected}" Value="True">
-                                        <Setter Property="Fill" Value="{StaticResource Ok}" />
+                                        <Setter Property="Fill" Value="{DynamicResource Ok}" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Status.IsError}" Value="True">
-                                        <Setter Property="Fill" Value="{StaticResource Bad}" />
+                                        <Setter Property="Fill" Value="{DynamicResource Bad}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
                     <TextBlock Text="{Binding Status.State}" FontWeight="SemiBold" Margin="0,0,12,0" />
-                    <TextBlock Foreground="{StaticResource TextMuted}">
+                    <TextBlock Foreground="{DynamicResource TextMuted}">
                         <Run Text="固件" />
                         <Run Text="{Binding Status.Firmware, Mode=OneWay}" />
                     </TextBlock>
@@ -95,43 +101,53 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="IP" Foreground="{StaticResource TextMuted}" Margin="0,0,16,4" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Status.Ip}" Margin="0,0,0,4" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="状态" Foreground="{DynamicResource TextMuted}" Margin="0,0,16,4" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Status.State}" FontWeight="SemiBold" Margin="0,0,0,4" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="信号" Foreground="{StaticResource TextMuted}" Margin="0,0,16,4" />
-                            <TextBlock Grid.Row="1" Grid.Column="1"
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="IP" Foreground="{DynamicResource TextMuted}" Margin="0,0,16,4" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Status.Ip}" Margin="0,0,0,4" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="信号" Foreground="{DynamicResource TextMuted}" Margin="0,0,16,4" />
+                            <TextBlock Grid.Row="2" Grid.Column="1"
                                        Text="{Binding Status.Rssi, StringFormat={}{0} dBm}" Margin="0,0,0,4" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="语音" Foreground="{StaticResource TextMuted}" Margin="0,0,16,4" />
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Status.Asr}" Margin="0,0,0,4" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="语音" Foreground="{DynamicResource TextMuted}" Margin="0,0,16,4" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Status.Asr}" Margin="0,0,0,4" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="告警" Foreground="{StaticResource TextMuted}" Margin="0,0,16,0" />
-                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Status.Warning}"
-                                       Foreground="{StaticResource Warn}" />
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="告警" Foreground="{DynamicResource TextMuted}" Margin="0,0,16,0" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Status.Warning}"
+                                       Foreground="{DynamicResource Warn}" />
                         </Grid>
 
-                        <!-- 空状态引导（PRD 6.1） -->
-                        <TextBlock Text="请用 USB 连接 Vibe Coding 键盘，或勾选左上角「模拟设备」先熟悉界面。"
-                                   Foreground="{StaticResource TextMuted}"
-                                   TextWrapping="Wrap" Margin="0,12,0,0"
-                                   Visibility="{Binding IsConnected, Converter={StaticResource B2V}}" />
+                        <!-- 空状态引导（PRD 6.1）：未连接时才显示 -->
+                        <Border Background="{DynamicResource AccentSubtle}"
+                                CornerRadius="8" Padding="12" Margin="0,12,0,0"
+                                Visibility="{Binding IsConnected, Converter={StaticResource InvB2V}}">
+                            <StackPanel>
+                                <TextBlock Text="未发现设备" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock Text="请用 USB-C 线连接 Vibe Coding 键盘；或勾选左上角「模拟设备」先熟悉界面。"
+                                           Foreground="{DynamicResource TextMuted}" FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
 
                         <!-- 设备发现（配网用）：STA 模式下设备 IP 由 DHCP 分配，
                              靠 UDP 广播让设备自报家门（设计文档 §6.2） -->
-                        <Separator Margin="0,14,0,12" Background="{StaticResource Border}" />
+                        <Separator Margin="0,14,0,12" Background="{DynamicResource Border}" />
                         <TextBlock Text="设备发现" Style="{StaticResource SectionTitle}" />
                         <StackPanel Orientation="Horizontal">
                             <Button Content="扫描设备" Click="OnScanDevices"
                                     IsEnabled="{Binding IsScanning, Converter={StaticResource InvScanning}}" />
                             <TextBlock Text="扫描中…" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextMuted}"
+                                       Foreground="{DynamicResource TextMuted}"
                                        Visibility="{Binding IsScanning, Converter={StaticResource B2V}}" />
                         </StackPanel>
                         <ListBox ItemsSource="{Binding DiscoveredDevices}"
                                  MaxHeight="72" Margin="0,8,0,0"
-                                 BorderThickness="0" Background="{StaticResource Bg}"
+                                 BorderThickness="0" Background="{DynamicResource Bg}"
                                  Visibility="{Binding DiscoveredDevices.Count,
                                               Converter={StaticResource Count2V}}">
                             <ListBox.ItemTemplate>
@@ -141,7 +157,7 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                         <TextBlock Text="AP 配网模式下设备 IP 固定为 192.168.4.1，无需扫描；STA 模式下点扫描让设备自报 IP。"
-                                   Foreground="{StaticResource TextMuted}" FontSize="11"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="11"
                                    TextWrapping="Wrap" Margin="0,8,0,0" />
                     </StackPanel>
                 </Border>
@@ -151,14 +167,14 @@
                     <StackPanel>
                         <TextBlock Text="配网" Style="{StaticResource SectionTitle}" />
                         <TextBlock Text="先把 PC 连到设备的 VibeKey-xxxx 热点，然后填写家庭 WiFi 的凭据。"
-                                   Foreground="{StaticResource TextMuted}" FontSize="12"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="12"
                                    TextWrapping="Wrap" Margin="0,0,0,10" />
 
-                        <TextBlock Text="家庭 WiFi 名称（SSID）" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4" />
+                        <TextBlock Text="家庭 WiFi 名称（SSID）" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4" />
                         <TextBox Text="{Binding WifiSsid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="0,0,0,8" />
 
-                        <TextBlock Text="密码" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4" />
+                        <TextBlock Text="密码" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4" />
                         <PasswordBox x:Name="WifiPasswordBox" PasswordChanged="OnWifiPasswordChanged"
                                      Margin="0,0,0,10" />
 
@@ -166,17 +182,17 @@
                             <Button Content="开始配网" Click="OnStartProvisioning"
                                     IsEnabled="{Binding IsProvisioning, Converter={StaticResource InvScanning}}" />
                             <TextBlock Text="配网中…" VerticalAlignment="Center"
-                                       Foreground="{StaticResource TextMuted}"
+                                       Foreground="{DynamicResource TextMuted}"
                                        Visibility="{Binding IsProvisioning, Converter={StaticResource B2V}}" />
                         </StackPanel>
 
-                        <Border Background="{StaticResource Bg}" CornerRadius="6" Padding="10" Margin="0,10,0,0"
+                        <Border Background="{DynamicResource Bg}" CornerRadius="6" Padding="10" Margin="0,10,0,0"
                                 Visibility="{Binding ProvisionStatus, Converter={StaticResource Str2V}}">
                             <TextBlock Text="{Binding ProvisionStatus}" FontSize="12" TextWrapping="Wrap" />
                         </Border>
 
                         <TextBlock Text="设备收到凭据后会自动重启并连上家庭 WiFi；蓝灯常亮即配网成功。"
-                                   Foreground="{StaticResource TextMuted}" FontSize="11"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="11"
                                    TextWrapping="Wrap" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>
@@ -185,8 +201,8 @@
                 <Border Style="{StaticResource CardBorder}">
                     <StackPanel>
                         <TextBlock Text="语音输入" Style="{StaticResource SectionTitle}" />
-                        <TextBlock Text="最近一次转写：" Foreground="{StaticResource TextMuted}" />
-                        <Border Background="{StaticResource Bg}" CornerRadius="6" Padding="10" Margin="0,6,0,10">
+                        <TextBlock Text="最近一次转写：" Foreground="{DynamicResource TextMuted}" />
+                        <Border Background="{DynamicResource Bg}" CornerRadius="6" Padding="10" Margin="0,6,0,10">
                             <TextBlock Text="{Binding LastAsrText}" TextWrapping="Wrap" MinHeight="34" />
                         </Border>
                         <StackPanel Orientation="Horizontal">
@@ -194,7 +210,7 @@
                             <Button Content="停止录音" Style="{StaticResource Secondary}" Click="OnVoiceStop" />
                         </StackPanel>
                         <TextBlock Text="按住 K7 说话即可，上位机把转写文本注入当前光标位置。"
-                                   Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
                                    Margin="0,10,0,0" FontSize="12" />
                     </StackPanel>
                 </Border>
@@ -204,12 +220,12 @@
                     <StackPanel>
                         <TextBlock Text="固件烧录" Style="{StaticResource SectionTitle}" />
                         <TextBlock Text="硬件默认运行在工作态。只有通过 USB 显式下发指令才会进入下载模式，"
-                                   Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" FontSize="12" />
+                                   Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" FontSize="12" />
                         <TextBlock Text="普通按键、串口误触、WiFi 报文都不能触发。"
-                                   Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" FontSize="12"
+                                   Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" FontSize="12"
                                    Margin="0,0,0,10" />
 
-                        <TextBlock Text="固件镜像（.bin）" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4" />
+                        <TextBlock Text="固件镜像（.bin）" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4" />
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -232,13 +248,13 @@
                                      Height="8" Margin="0,12,0,6"
                                      Visibility="{Binding IsFlashing, Converter={StaticResource B2V}}" />
 
-                        <Border Background="{StaticResource Bg}" CornerRadius="6" Padding="10"
+                        <Border Background="{DynamicResource Bg}" CornerRadius="6" Padding="10"
                                 Visibility="{Binding FlashStatus, Converter={StaticResource Str2V}}">
                             <TextBlock Text="{Binding FlashStatus}" FontSize="12" TextWrapping="Wrap" />
                         </Border>
 
                         <TextBlock Text="烧录过程中请勿拔 USB 线。设备会重启两次：先进下载模式，写完后回工作态。"
-                                   Foreground="{StaticResource TextMuted}" FontSize="11"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="11"
                                    TextWrapping="Wrap" Margin="0,10,0,0" />
                     </StackPanel>
                 </Border>
@@ -262,7 +278,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="按键" Foreground="{StaticResource TextMuted}"
+                            <TextBlock Grid.Column="0" Text="按键" Foreground="{DynamicResource TextMuted}"
                                        VerticalAlignment="Center" Margin="0,0,12,0" />
                             <ComboBox Grid.Column="1"
                                       ItemsSource="{Binding Mappings}"
@@ -271,13 +287,13 @@
                         </Grid>
 
                         <StackPanel Grid.Row="2" DataContext="{Binding Selected}">
-                            <TextBlock Text="动作类型" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4" />
+                            <TextBlock Text="动作类型" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4" />
                             <ComboBox ItemsSource="{Binding DataContext.AvailableActions,
                                                 RelativeSource={RelativeSource AncestorType=Window}}"
                                       SelectedItem="{Binding Action, Mode=TwoWay}"
                                       Margin="0,0,0,10" />
 
-                            <TextBlock Text="文本 / 快捷键 / 目标" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4" />
+                            <TextBlock Text="文本 / 快捷键 / 目标" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,4" />
                             <TextBox Text="{Binding Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      Margin="0,0,0,6" />
                             <TextBox Text="{Binding Hotkey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -288,7 +304,7 @@
                             <CheckBox IsChecked="{Binding Enabled, Mode=TwoWay}" Content="启用这个按键" Margin="0,0,0,12" />
 
                             <TextBlock Text="快捷键示例：Ctrl+Shift+P、Alt+F4、Ctrl+K Ctrl+S"
-                                       Foreground="{StaticResource TextMuted}" FontSize="12"
+                                       Foreground="{DynamicResource TextMuted}" FontSize="12"
                                        TextWrapping="Wrap" Margin="0,0,0,12" />
 
                             <StackPanel Orientation="Horizontal">
@@ -307,10 +323,10 @@
                         <CheckBox IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}"
                                   Content="开机自动启动 VibeKey（启动后最小化到托盘）" />
                         <TextBlock Text="勾选后在 Windows 注册表写入启动项；自启时窗口默认最小化到托盘，"
-                                   Foreground="{StaticResource TextMuted}" FontSize="11"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="11"
                                    TextWrapping="Wrap" Margin="0,8,0,0" />
                         <TextBlock Text="托盘图标左键展开状态，右键退出。"
-                                   Foreground="{StaticResource TextMuted}" FontSize="11"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="11"
                                    TextWrapping="Wrap" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
@@ -332,17 +348,17 @@
                                     Click="OnClearLog" Margin="0,0,0,10" />
                         </Grid>
                         <ListBox Grid.Row="1" MaxHeight="180" BorderThickness="0"
-                                 Background="{StaticResource Bg}"
+                                 Background="{DynamicResource Bg}"
                                  ItemsSource="{Binding Logs}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Line}" TextWrapping="Wrap" FontSize="12">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                                <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsError}" Value="True">
-                                                        <Setter Property="Foreground" Value="{StaticResource Bad}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource Bad}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
+using VibeKey.App.Services;
 using VibeKey.App.ViewModels;
 
 namespace VibeKey.App.Views;
@@ -45,6 +46,13 @@ public partial class MainWindow : Window
     private async void OnStartProvisioning(object sender, RoutedEventArgs e)
     {
         await _vm.StartProvisioningAsync();
+    }
+
+    /// <summary>切换浅色 / 深色主题。</summary>
+    private void OnToggleTheme(object sender, RoutedEventArgs e)
+    {
+        ThemeManager.Toggle();
+        ThemeIcon.Text = ThemeManager.Current == ThemeManager.Dark ? "☀" : "🌙";
     }
 
     private void OnConnect(object sender, RoutedEventArgs e)

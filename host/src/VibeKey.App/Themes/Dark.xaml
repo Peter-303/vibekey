@@ -1,0 +1,40 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============================================================
+         VibeKey 深色主题
+         与浅色共用同一套语义键，只改色值。
+         深色不做纯黑——#0F1114 的深灰底 + #16181C 的卡片，
+         保留层次同时避免 OLED 式的刺黑。
+         ============================================================ -->
+
+    <SolidColorBrush x:Key="Bg"        Color="#0F1114" />
+    <SolidColorBrush x:Key="Card"      Color="#16181C" />
+    <SolidColorBrush x:Key="CardHover" Color="#1A1D22" />
+    <SolidColorBrush x:Key="Overlay"   Color="#1C1F24" />
+
+    <SolidColorBrush x:Key="Border"      Color="#2A2E35" />
+    <SolidColorBrush x:Key="BorderStrong" Color="#3A3F47" />
+
+    <SolidColorBrush x:Key="Text"        Color="#E6E8EB" />
+    <SolidColorBrush x:Key="TextMuted"   Color="#9BA1A8" />
+    <SolidColorBrush x:Key="TextFaint"   Color="#6B7078" />
+
+    <SolidColorBrush x:Key="Accent"        Color="#4C8DFF" />
+    <SolidColorBrush x:Key="AccentHover"   Color="#3D7CF0" />
+    <SolidColorBrush x:Key="AccentPressed" Color="#2E6AE0" />
+    <SolidColorBrush x:Key="AccentSubtle"  Color="#1A2438" />
+    <SolidColorBrush x:Key="AccentSubtleHover" Color="#22304A" />
+
+    <SolidColorBrush x:Key="Ok"        Color="#3DA955" />
+    <SolidColorBrush x:Key="OkSubtle"  Color="#16281A" />
+    <SolidColorBrush x:Key="Warn"      Color="#E0A42E" />
+    <SolidColorBrush x:Key="WarnSubtle" Color="#2A2210" />
+    <SolidColorBrush x:Key="Bad"       Color="#E5484D" />
+    <SolidColorBrush x:Key="BadSubtle"  Color="#2B1617" />
+
+    <SolidColorBrush x:Key="Divider" Color="#22262C" />
+
+    <SolidColorBrush x:Key="FocusRing" Color="#4C8DFF" />
+
+</ResourceDictionary>
