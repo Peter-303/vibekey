@@ -10,6 +10,10 @@ installer/output/
 *.pdb
 *.ilk
 
+# 分发产物（二进制不进 git，dist/README.md 的说明保留）
+dist/*.exe
+dist/*.bin
+
 # 测试可执行文件
 firmware/test/run_tests
 firmware/test/run_tests.exe
