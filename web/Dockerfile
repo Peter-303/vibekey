@@ -7,7 +7,7 @@
 # 多阶段：阶段 1 构建前端 dist，阶段 2 跑后端 serve dist + API + WebSocket 桥。
 
 # ---- 阶段 1：构建前端 ----
-FROM node:22-alpine AS frontend
+FROM node:22-slim AS frontend
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 # ---- 阶段 2：后端运行 ----
-FROM node:22-alpine
+FROM node:22-slim
 ENV NODE_ENV=production
 WORKDIR /app
 
