@@ -1,0 +1,48 @@
+# VibeKey 云端部署：后端 + Caddy（自动 SSL）
+#
+# 用法：
+#   1. 把 DOMAIN 改成你的域名（如 vibekey.example.com），DNS 加 A 记录指向本服务器
+#   2. 生成一个强随机 JWT_SECRET 填下面
+#   3. docker compose up -d --build
+#   4. 访问 https://<你的域名>
+
+services:
+  backend:
+    build: .
+    container_name: vibekey-backend
+    restart: unless-stopped
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-change-me-to-a-long-random-string}
+      - NODE_ENV=production
+    volumes:
+      - vibekey-data:/app/data
+    networks:
+      - vibekey
+    # 不直接暴露端口，由 Caddy 反向代理
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: vibekey-caddy
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - vibekey
+
+networks:
+  vibekey:
+    driver: bridge
+
+volumes:
+  vibekey-data:
+  caddy-data:
+  caddy-config:

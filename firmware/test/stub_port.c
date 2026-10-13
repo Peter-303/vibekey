@@ -102,6 +102,8 @@ static void p_uart1_print(const char *line)
     }
 }
 
+static void p_net_poll(void) { /* stub：无网络通道 */ }
+
 static void p_reboot(void) { vk_stub_reboots++; }
 static void p_wdt_feed(void) { vk_stub_wdt_feeds++; }
 static void p_sleep_ms(uint32_t ms) { (void)ms; }
@@ -136,6 +138,7 @@ static const vk_port_t stub_table = {
     p_keys_sample,
     p_led_set,
     p_send_frame,
+    p_net_poll,
     p_uart1_print,
     p_reboot,
     p_wdt_feed,

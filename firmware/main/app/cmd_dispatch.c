@@ -255,6 +255,57 @@ int vk_cmd_parse_asr(const uint8_t *payload, uint16_t len, vk_asr_cfg_t *cfg)
     return 0;
 }
 
+/**
+ * 从 0x12 帧载荷里扫出 cloud_url / cloud_token（云连接配置）。
+ * 这两个键不属于 ASR 配置（不在 vk_asr_cfg_t 里），
+ * 所以单独扫描并存进 cmd_dispatch_t 的云字段。
+ * 复用 0x12 帧的扩展键，不改协议、不加新帧类型。
+ */
+static void scan_cloud_keys(const uint8_t *payload, uint16_t len, vk_cmd_dispatch_t *d)
+{
+    size_t off = 0u;
+    if ((payload == NULL) || (d == NULL) || (len == 0u)) {
+        return;
+    }
+
+    while (off < (size_t)len) {
+        const char *kv = (const char *)&payload[off];
+        size_t remain = (size_t)len - off;
+        size_t seglen = seg_strnlen(kv, remain);
+        const char *eq;
+        size_t klen;
+        size_t vlen;
+        const char *v;
+
+        if (seglen == 0u) {
+            off += 1u;
+            continue;
+        }
+        eq = (const char *)memchr(kv, '=', seglen);
+        if ((eq == NULL) || (eq == kv)) {
+            off += seglen + 1u;
+            continue;
+        }
+        klen = (size_t)(eq - kv);
+        vlen = seglen - klen - 1u;
+        v = eq + 1;
+
+        if ((klen == 9u) && (memcmp(kv, "cloud_url", 9u) == 0)) {
+            if (vlen < sizeof(d->cloud_url)) {
+                memcpy(d->cloud_url, v, vlen);
+                d->cloud_url[vlen] = '\0';
+            }
+        } else if ((klen == 11u) && (memcmp(kv, "cloud_token", 11u) == 0)) {
+            if (vlen < sizeof(d->cloud_token)) {
+                memcpy(d->cloud_token, v, vlen);
+                d->cloud_token[vlen] = '\0';
+            }
+        }
+
+        off += seglen + 1u;
+    }
+}
+
 /* ----------------------------- 分发主逻辑 ------------------------------ */
 
 vk_cmd_action_t vk_cmd_handle(vk_cmd_dispatch_t *d, const proto_frame_t *f, uint8_t channel,
@@ -298,6 +349,7 @@ vk_cmd_action_t vk_cmd_handle(vk_cmd_dispatch_t *d, const proto_frame_t *f, uint
             ok = 0;
             rsn = VK_CMD_RSN_FMT;
         } else {
+            scan_cloud_keys(f->payload, f->len, d);   /* 顺带扫云配置（cloud_url/cloud_token） */
             act = VK_CMD_ACT_ASR_SAVE;
         }
         break;

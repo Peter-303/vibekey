@@ -26,6 +26,7 @@
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "esp_wifi_default.h"
+#include "esp_websocket_client.h"
 #include "lwip/sockets.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -274,6 +275,18 @@ void vk_usb_poll(void)
 }
 
 /* ============================ 帧发送 ========================== */
+
+/* 云 WebSocket 客户端句柄与在线标志（在 vk_cloud_task 段初始化）。
+ * 挪到前面声明，因为 p_send_frame 要用它。 */
+static esp_websocket_client_handle_t s_cloud_client;
+static volatile int s_cloud_online;
+
+/* TCP 客户端 socket（-1 表示没客户端）。挪到前面声明，p_send_frame 要用。 */
+static volatile int s_tcp_client = -1;
+
+/* 前向声明：vk_cloud_task 要用，定义在后面。 */
+int port_esp32_wifi_ready(void);
+
 static void p_send_frame(const uint8_t *encoded, size_t len)
 {
     if ((encoded == NULL) || (len == 0u)) {
@@ -293,12 +306,92 @@ static void p_send_frame(const uint8_t *encoded, size_t len)
         off += n;
     }
     tud_cdc_n_write_flush(VK_CDC_ITF);
+
+    /* WiFi TCP 通道：有客户端连着就发（设计文档 §3.4 规则 2：同一 seq 双通道同发） */
+    if (s_tcp_client >= 0) {
+        size_t off2 = 0u;
+        while (off2 < len) {
+            int n = send(s_tcp_client, &encoded[off2], len - off2, 0);
+            if (n <= 0) {
+                close(s_tcp_client);
+                s_tcp_client = -1;
+                break;
+            }
+            off2 += (size_t)n;
+        }
+    }
+
+    /* 云 WebSocket 通道：云在线就发 */
+    if (s_cloud_client != NULL) {
+        (void)esp_websocket_client_send_bin(s_cloud_client,
+                                            (const char *)encoded, (int)len,
+                                            pdMS_TO_TICKS(200));
+    }
 }
 
 /* 说明：这里故意没有"下行帧入口"。
  * 移植层只向上交字节（hooks.on_usb_bytes），帧解码与分发由 app 层自己做
  * ——vk_app_on_usb_bytes() 内部会解码并调用 vk_app_on_frame()。
  * 这样 SEQ 跨通道去重才有统一视图（设计文档 §3.4 规则 3）。 */
+
+/* ============================ 网络字节队列 ===================== */
+/*
+ * 为什么需要它：网络任务（TCP / 云 WebSocket）不能直接调 hooks.on_wifi_bytes，
+ * 那会和主循环（vk_app_poll）并发访问 app 状态（已存在的数据竞争，
+ * 云连接加进来后竞争概率更高）。
+ *
+ * 做法：网络任务只把收到的字节放进这个队列，应用层在 vk_app_poll 里调
+ * net_poll，由 net_poll 在**应用层任务上下文里** drain 并调 on_wifi_bytes。
+ * 这样 app 层只在主循环任务里被调用，线程安全（见 port.h net_poll 注释）。
+ */
+
+#define VK_NET_QUEUE_DEPTH  16u
+#define VK_NET_CHUNK_MAX    256u
+
+typedef struct {
+    uint8_t  data[VK_NET_CHUNK_MAX];
+    uint16_t len;
+} net_chunk_t;
+
+static QueueHandle_t s_net_queue;
+
+/** 网络任务把一段字节放进队列（供 vk_tcp_task / vk_cloud_task 调用）。 */
+static void net_enqueue(const uint8_t *data, size_t len)
+{
+    net_chunk_t chunk;
+    size_t off = 0u;
+
+    if ((data == NULL) || (len == 0u) || (s_net_queue == NULL)) {
+        return;
+    }
+    while (off < len) {
+        size_t n = len - off;
+        if (n > VK_NET_CHUNK_MAX) {
+            n = VK_NET_CHUNK_MAX;
+        }
+        memcpy(chunk.data, &data[off], n);
+        chunk.len = (uint16_t)n;
+        /* 队列满就丢（xQueueSend 超时 0），避免网络任务被阻塞 */
+        if (xQueueSend(s_net_queue, &chunk, 0) != pdTRUE) {
+            break;
+        }
+        off += n;
+    }
+}
+
+/** net_poll：在应用层上下文里 drain 队列并调 hooks.on_wifi_bytes。 */
+static void p_net_poll(void)
+{
+    net_chunk_t chunk;
+    if (s_net_queue == NULL) {
+        return;
+    }
+    while (xQueueReceive(s_net_queue, &chunk, 0) == pdTRUE) {
+        if ((s_hooks.on_wifi_bytes != NULL) && (s_hooks.app != NULL)) {
+            s_hooks.on_wifi_bytes(s_hooks.app, chunk.data, (uint32_t)chunk.len);
+        }
+    }
+}
 
 /* ============================ NVS ============================= */
 static nvs_handle_t s_nvs = 0;
@@ -361,8 +454,7 @@ static esp_netif_t *s_netif_ap;
 static esp_netif_t *s_netif_sta;
 static volatile int s_wifi_started;
 
-/* 当前 TCP 客户端。-1 表示没有客户端连着。 */
-static volatile int s_tcp_client = -1;
+
 
 /** 退出当前 WiFi 模式，便于切到另一种模式。 */
 static void wifi_teardown(void)
@@ -689,15 +781,144 @@ static void vk_tcp_task(void *arg)
             if (n <= 0) {
                 break;   /* 对方关闭或出错 */
             }
-            if ((s_hooks.on_wifi_bytes != NULL) && (s_hooks.app != NULL)) {
-                s_hooks.on_wifi_bytes(s_hooks.app, buf, (uint32_t)n);
-            }
+            /* 放队列，由 net_poll 在应用层上下文调 app——不在这里直接调
+             * （修已存在的并发问题：网络任务与主循环竞争 app 状态） */
+            net_enqueue(buf, (size_t)n);
         }
 
         close(cli);
         s_tcp_client = -1;
         ESP_LOGI(TAG, "TCP 客户端已断开");
     }
+}
+
+/* ============================ 云 WebSocket 客户端 ==================== */
+/*
+ * 阶段 2：设备主动连云。
+ *
+ * 设备连上 WiFi（WORK_READY）后，读 NVS 的 cloud_url / cloud_token，
+ * 主动连 wss://<cloud_url>?token=<cloud_token>，保持长连接。
+ * 浏览器经服务器的 WebSocket 桥配对转发（web/server/bridge.js）。
+ *
+ * 收到的二进制帧 -> net_enqueue（由 net_poll 在应用层上下文调 app）。
+ * 发送 -> p_send_frame 里 esp_websocket_client_send_bin。
+ *
+ * 认证：cloud_token 由用户在网页端生成，配网时通过 0x12 ASR 配置帧
+ * 的扩展键（cloud_url / cloud_token）下发并存 NVS。
+ */
+
+#define VK_CLOUD_URL_MAX  160u
+#define VK_CLOUD_TOKEN_MAX 64u
+
+/** 从 NVS 读云配置。返回 1 表示两项都有。 */
+static int cloud_load_config(char *url, size_t url_cap, char *token, size_t token_cap)
+{
+    int ok = 0;
+    ok += (p_nvs_get_str("cloud_url", url, url_cap) == VK_PORT_OK) && (url[0] != '\0');
+    ok += (p_nvs_get_str("cloud_token", token, token_cap) == VK_PORT_OK) && (token[0] != '\0');
+    return (ok == 2) ? 1 : 0;
+}
+
+/** 云事件回调：把收到的二进制帧放进网络队列。 */
+static void cloud_event_handler(void *args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+    esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
+
+    (void)args;
+    (void)base;
+
+    switch (event_id) {
+    case WEBSOCKET_EVENT_CONNECTED:
+        s_cloud_online = 1;
+        ESP_LOGI(TAG, "云已连接");
+        break;
+
+    case WEBSOCKET_EVENT_DATA:
+        if ((data->data_ptr != NULL) && (data->data_len > 0)) {
+            net_enqueue((const uint8_t *)data->data_ptr, (size_t)data->data_len);
+        }
+        break;
+
+    case WEBSOCKET_EVENT_DISCONNECTED:
+        s_cloud_online = 0;
+        ESP_LOGW(TAG, "云断开");
+        break;
+
+    case WEBSOCKET_EVENT_ERROR:
+        s_cloud_online = 0;
+        ESP_LOGE(TAG, "云错误");
+        break;
+
+    default:
+        break;
+    }
+}
+
+/** 云连接任务：连上 WiFi 后主动连云，断开自动重连。 */
+static void vk_cloud_task(void *arg)
+{
+    char url[VK_CLOUD_URL_MAX];
+    char token[VK_CLOUD_TOKEN_MAX];
+    char full_url[VK_CLOUD_URL_MAX + VK_CLOUD_TOKEN_MAX + 16];
+
+    (void)arg;
+
+    for (;;) {
+        /* 等设备进入 WORK_READY（WiFi 已连上） */
+        if (!port_esp32_wifi_ready()) {
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            continue;
+        }
+
+        if (cloud_load_config(url, sizeof(url), token, sizeof(token)) == 0) {
+            /* 还没配云（没收到 cloud_url / cloud_token），等配置 */
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            continue;
+        }
+
+        /* 拼完整 URL：cloud_url + "?token=" + cloud_token */
+        int n = snprintf(full_url, sizeof(full_url), "%s?token=%s", url, token);
+        if (n <= 0 || (size_t)n >= sizeof(full_url)) {
+            ESP_LOGE(TAG, "云 URL 过长");
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            continue;
+        }
+
+        ESP_LOGI(TAG, "连云：%s?token=%s…", url, token);
+
+        esp_websocket_client_config_t cfg = {
+            .uri = full_url,
+            .use_global_ca_store = true,
+            .disable_auto_reconnect = true,   /* 重连由本任务自己控制（带退避） */
+            .task_stack = 6144,
+            .task_prio = 5,
+        };
+
+        s_cloud_client = esp_websocket_client_init(&cfg);
+        if (s_cloud_client == NULL) {
+            ESP_LOGE(TAG, "云 client init 失败");
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            continue;
+        }
+
+        esp_websocket_register_events(s_cloud_client, WEBSOCKET_EVENT_ANY,
+                                      cloud_event_handler, NULL);
+
+        /* start 是阻塞的（内部跑事件循环），断开或出错才返回 */
+        esp_err_t e = esp_websocket_client_start(s_cloud_client);
+        s_cloud_online = 0;
+        ESP_LOGW(TAG, "云连接结束：%s，5s 后重试", esp_err_to_name(e));
+
+        esp_websocket_client_destroy(s_cloud_client);
+        s_cloud_client = NULL;
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+}
+
+/** 供 app 层查询云通道是否在线。 */
+int port_esp32_cloud_online(void)
+{
+    return s_cloud_online;
 }
 
 /** 供 app 层查询 WiFi 通道是否可用（用于状态帧里的 CH= 字段）。 */
@@ -1168,6 +1389,7 @@ const vk_port_t port_esp32 = {
     p_keys_sample,
     p_led_set,
     p_send_frame,
+    p_net_poll,
     p_uart1_print,
     p_reboot,
     p_wdt_feed,
@@ -1290,9 +1512,17 @@ int port_esp32_init(const port_esp32_hooks_t *hooks)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
 
+    /* 网络字节队列：网络任务放，net_poll 在应用层上下文 drain */
+    s_net_queue = xQueueCreate(VK_NET_QUEUE_DEPTH, sizeof(net_chunk_t));
+    if (s_net_queue == NULL) {
+        ESP_LOGE(TAG, "网络队列创建失败");
+        return -1;
+    }
+
     /* 两个服务任务常驻，AP/STA 切换不重启它们 */
     xTaskCreate(vk_tcp_task, "vk_tcp", 4096, NULL, 5, NULL);
     xTaskCreate(vk_udp_task, "vk_udp", 3072, NULL, 5, NULL);
+    xTaskCreate(vk_cloud_task, "vk_cloud", 6144, NULL, 5, NULL);
 
     /* 唤醒日志也走 UART1，便于开发期观察移植层是否就绪 */
     p_uart1_print("STATUS:PORT_READY");

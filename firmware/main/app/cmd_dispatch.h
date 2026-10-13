@@ -79,6 +79,10 @@ typedef struct {
     char       wifi_ssid[33];
     char       wifi_pass[65];
     vk_asr_cfg_t asr_cfg;
+
+    /* 云连接配置（通过 0x12 ASR 配置帧的扩展键下发，复用协议不加新帧类型） */
+    char       cloud_url[128];   /**< wss://<域名>/ws/device */
+    char       cloud_token[64];  /**< device_token，设备连云时认证用 */
 } vk_cmd_dispatch_t;
 
 /** 初始化。window_ms 传 0 用默认值 5000。 */

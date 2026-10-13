@@ -207,6 +207,18 @@ static void app_do_cmd_action(vk_app_t *app, vk_cmd_action_t act)
                 app->status.err = VK_ERR_NVS_FAIL;
                 app->status_dirty = 1u;
             }
+
+            /* 云连接配置一并落 NVS（cmd_dispatch 已顺带扫出 cloud_url/cloud_token） */
+            if (app->cmd.cloud_url[0] != '\0') {
+                (void)vk_port->nvs_set_str("cloud_url", app->cmd.cloud_url);
+            }
+            if (app->cmd.cloud_token[0] != '\0') {
+                (void)vk_port->nvs_set_str("cloud_token", app->cmd.cloud_token);
+            }
+            if ((app->cmd.cloud_url[0] != '\0') || (app->cmd.cloud_token[0] != '\0')) {
+                (void)vk_port->nvs_commit();
+            }
+
             /* 语音键可能被重新指定，同步给按键状态机 */
             app->keys.cfg.voice_key_char = app->cmd.asr_cfg.voice_key;
         }
@@ -484,6 +496,12 @@ int vk_app_poll(vk_app_t *app)
     /* 看门狗 */
     if (vk_port->wdt_feed != NULL) {
         vk_port->wdt_feed();
+    }
+
+    /* ---------- 0. 网络通道泵（drain TCP/云 收到的字节，在应用层上下文调 app） ----------
+     * 网络任务只放队列，app 层只在这里被调用，线程安全（见 port.h net_poll 注释）。 */
+    if (vk_port->net_poll != NULL) {
+        vk_port->net_poll();
     }
 
     /* ---------- 1. 按键扫描 ---------- */

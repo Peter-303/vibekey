@@ -76,6 +76,20 @@ typedef struct vk_port {
      */
     void (*send_frame)(const uint8_t *encoded, size_t len);
 
+    /**
+     * 在应用层上下文里"泵"一次网络通道。
+     *
+     * 为什么需要它：网络任务（TCP / 云 WebSocket）**不能**直接调
+     * hooks.on_wifi_bytes——那会和主循环（vk_app_poll）并发访问 app 状态。
+     * 网络任务只把收到的字节放进一个线程安全的队列，应用层在 vk_app_poll 里
+     * 调 net_poll，由 net_poll 在**应用层任务上下文里** drain 队列并调
+     * hooks.on_wifi_bytes。这样 app 层只在主循环任务里被调用，线程安全。
+     *
+     * 实现方应在 net_poll 里把队列里攒的字节全部 drain 给 hooks.on_wifi_bytes，
+     * 每次调用尽量短（不得无限阻塞）。app.c 每拍调一次。
+     */
+    void (*net_poll)(void);
+
     /** UART1 调试行（不含 \r\n，由实现方追加）。115200 8N1。 */
     void (*uart1_print)(const char *line);
 

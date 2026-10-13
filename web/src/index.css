@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@theme {
+  /* Neo-Brutalism 色板（与 Windows 上位机一致） */
+  --color-cream: #F3E5CE;
+  --color-card: #FFFFFF;
+  --color-card-accent: #F7CE4B;
+  --color-ink: #1A1A1A;
+  --color-ink-muted: #6B6257;
+  --color-ink-faint: #A3988A;
+  --color-pink: #E8437C;
+  --color-pink-hover: #D1336B;
+  --color-pink-pressed: #B82658;
+  --color-pink-subtle: #FBE3EE;
+  --color-ok: #1A9E6F;
+  --color-warn: #C77F00;
+  --color-bad: #D93A3A;
+  --color-divider: #D8C9B2;
+
+  --shadow-brutal: 6px 6px 0 0 #1A1A1A;
+  --shadow-brutal-sm: 4px 4px 0 0 #1A1A1A;
+  --shadow-brutal-xs: 2px 2px 0 0 #1A1A1A;
+}
+
+html {
+  background: var(--color-cream);
+}
+
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Neo-Brutalism 通用卡片 */
+.card-brutal {
+  background: var(--color-card);
+  border: 2.5px solid var(--color-ink);
+  border-radius: 18px;
+  box-shadow: var(--shadow-brutal);
+}
+
+.card-brutal-accent {
+  background: var(--color-card-accent);
+  border: 2.5px solid var(--color-ink);
+  border-radius: 18px;
+  box-shadow: var(--shadow-brutal);
+}
+
+/* Neo-Brutalism 按钮 */
+.btn-brutal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--color-pink);
+  color: #fff;
+  font-weight: 600;
+  border: 2.5px solid var(--color-ink);
+  border-radius: 10px;
+  box-shadow: var(--shadow-brutal-sm);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s, background 0.08s;
+  user-select: none;
+}
+.btn-brutal:hover {
+  background: var(--color-pink-hover);
+  box-shadow: var(--shadow-brutal-xs);
+  transform: translate(1px, 1px);
+}
+.btn-brutal:active {
+  background: var(--color-pink-pressed);
+  box-shadow: 0 0 0 0 var(--color-ink);
+  transform: translate(2px, 2px);
+}
+.btn-brutal:disabled {
+  background: var(--color-divider);
+  color: var(--color-ink-faint);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-brutal-secondary {
+  background: var(--color-card);
+  color: var(--color-ink);
+}
+.btn-brutal-secondary:hover {
+  background: var(--color-pink-subtle);
+  box-shadow: var(--shadow-brutal-xs);
+  transform: translate(1px, 1px);
+}
+
+/* Neo-Brutalism 输入框 */
+.input-brutal {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--color-card);
+  border: 2px solid var(--color-ink);
+  border-radius: 8px;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.1s;
+}
+.input-brutal:focus {
+  border-color: var(--color-pink);
+  border-width: 2.5px;
+}
+
+/* 标签 */
+.label-brutal {
+  display: block;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  margin-bottom: 4px;
+}
