@@ -4,7 +4,7 @@
  * 用 better-sqlite3（同步、零配置、单文件）。
  * 数据文件：server/data/vibekey.db（由环境变量 DB_PATH 覆盖）。
  */
-import Database from 'better-sqlite3'
+import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -14,8 +14,8 @@ const DB_PATH = process.env.DB_PATH || join(__dirname, 'data', 'vibekey.db')
 
 mkdirSync(dirname(DB_PATH), { recursive: true })
 
-export const db = new Database(DB_PATH)
-db.pragma('journal_mode = WAL')
+export const db = new DatabaseSync(DB_PATH)
+db.exec('PRAGMA journal_mode = WAL')
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
