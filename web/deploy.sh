@@ -17,7 +17,7 @@ set -euo pipefail
 DOMAIN="${1:-}"
 if [[ -z "$DOMAIN" ]]; then
     echo "用法: $0 <域名>"
-    echo "示例: $0 vibekey.example.com"
+    echo "示例: $0 vibekey.bealux.tech"
     exit 1
 fi
 

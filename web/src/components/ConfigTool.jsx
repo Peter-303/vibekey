@@ -51,7 +51,7 @@ export default function ConfigTool({ onBack }) {
   const [password, setPassword] = useState('')
   const [devices, setDevices] = useState([])
   const [selDevice, setSelDevice] = useState('')
-  const [wsBase, setWsBase] = useState(() => localStorage.getItem('vibekey_ws') || `ws://${location.hostname}:8080`)
+  const [wsBase, setWsBase] = useState(() => localStorage.getItem('vibekey_ws') || 'wss://vibekey.bealux.tech')
 
   const dev = channel === 'usb' ? usbRef.current : cloudRef.current
 
@@ -220,7 +220,7 @@ export default function ConfigTool({ onBack }) {
       addLog('请先选一台设备', true)
       return
     }
-    const url = `wss://${location.hostname}/ws/device`
+    const url = 'wss://vibekey.bealux.tech/ws/device'
     addLog(`下发云配置：cloud_url=${url}，cloud_token=${selDevice.slice(0, 12)}…`)
     const ok = await dev.sendCloudConfig(url, selDevice)
     addLog(ok ? '云配置已下发，设备将保存并主动连云' : '下发失败', !ok)
